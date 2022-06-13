@@ -1,6 +1,7 @@
 <template>
   <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
-    <!-- <div
+    <div
+      v-if="!coinsList"
       class="fixed w-100 h-100 opacity-80 bg-purple-800 inset-0 z-50 flex items-center justify-center"
     >
       <svg
@@ -23,7 +24,7 @@
           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
         ></path>
       </svg>
-    </div> -->
+    </div>
     <div class="container">
       <section>
         <div class="flex">
@@ -33,8 +34,9 @@
             </label>
             <div class="mt-1 relative rounded-md shadow-md">
               <input
-                v-model="ticker"
+                v-model.trim="ticker"
                 v-on:keydown.enter="add"
+                v-on:input="autoComplete"
                 type="text"
                 name="wallet"
                 id="wallet"
@@ -42,31 +44,23 @@
                 placeholder="Например DOGE"
               />
             </div>
-            <!-- <div
+
+            <div
+              v-if="autocompleteCoins.length"
               class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
             >
               <span
+                v-for="coin in autocompleteCoins"
+                :key="coin"
+                v-on:click="add"
                 class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
               >
-                BTC
-              </span>
-              <span
-                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
-              >
-                DOGE
-              </span>
-              <span
-                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
-              >
-                BCH
-              </span>
-              <span
-                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
-              >
-                CHD
+                {{ coin.Symbol }}
               </span>
             </div>
-            <div class="text-sm text-red-600">Такой тикер уже добавлен</div> -->
+            <div v-if="isValid" class="text-sm text-red-600">
+              Такой тикер уже добавлен
+            </div>
           </div>
         </div>
         <button
@@ -189,10 +183,16 @@ export default {
       tickers: [],
       sel: null,
       graph: [],
+
+      coinsList: null,
+      autocompleteCoins: [],
+      isValid: false,
     };
   },
   methods: {
     add() {
+      if (this.validate()) return;
+
       const currentTicker = {
         name: this.ticker,
         price: "-",
@@ -231,6 +231,32 @@ export default {
       this.sel = ticker;
       this.graph = [];
     },
+
+    autoComplete() {
+      this.autocompleteCoins =
+        this.ticker &&
+        this.coinsList
+          .filter((coin) => coin.Symbol.includes(this.ticker.toUpperCase()))
+          .slice(0, 4);
+      this.validate();
+    },
+
+    validate() {
+      const currentTickersName = this.tickers.map((t) => t.name.toUpperCase());
+      this.isValid = currentTickersName.includes(this.ticker.toUpperCase());
+
+      return this.isValid;
+    },
+  },
+
+  mounted() {
+    setTimeout(async () => {
+      const f = await fetch(
+        "https://min-api.cryptocompare.com/data/all/coinlist?summary=true"
+      );
+      const data = await f.json();
+      this.coinsList = Object.values(data.Data);
+    }, 0);
   },
 };
 </script>
