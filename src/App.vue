@@ -213,6 +213,7 @@ export default {
         }
       }, 3000);
       this.ticker = "";
+      this.autocompleteCoins = [];
     },
 
     handleDelete(tickerToRemove) {
@@ -235,9 +236,17 @@ export default {
     autoComplete() {
       this.autocompleteCoins =
         this.ticker &&
+        this.coinsList.filter(
+          (coin) => coin.Symbol.toUpperCase() === this.ticker.toUpperCase()
+        );
+
+      const elseTickers =
+        this.ticker &&
         this.coinsList
           .filter((coin) => coin.Symbol.includes(this.ticker.toUpperCase()))
-          .slice(0, 4);
+          .slice(0, 3);
+      this.autocompleteCoins = this.autocompleteCoins.concat(elseTickers);
+
       this.validate();
     },
 
