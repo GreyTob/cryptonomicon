@@ -36,7 +36,6 @@
               <input
                 v-model.trim="ticker"
                 v-on:keydown.enter="add"
-                v-on:input="autoComplete"
                 type="text"
                 name="wallet"
                 id="wallet"
@@ -46,13 +45,13 @@
             </div>
 
             <div
-              v-if="autocompleteCoins.length"
+              v-if="autoComplete.length"
               class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
             >
               <span
-                v-for="coin in autocompleteCoins"
+                v-for="coin in autoComplete"
                 :key="coin"
-                v-on:click="add"
+                v-on:click="ticker = coin.Symbol"
                 class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
               >
                 {{ coin.Symbol }}
@@ -105,6 +104,9 @@
             Фильтр:
             <input v-model="filter" />
           </div>
+          <div class="flex items-center justify-center">
+            Страница {{ page }}
+          </div>
         </div>
         <hr class="w-full border-t border-gray-600 my-4" />
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
@@ -114,7 +116,7 @@
             @click="select(t)"
             v-bind:title="t.name"
             :class="{
-              'border-4': selectedTicker === t,
+              'border-4': selectedTicker === t
             }"
             class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
           >
@@ -210,10 +212,9 @@ export default {
       graph: [],
 
       coinsList: null,
-      autocompleteCoins: [],
-      isValid: false,
+      // autocompleteCoins: [],
 
-      page: 1,
+      page: 1
     };
   },
 
@@ -227,7 +228,9 @@ export default {
     },
 
     filteredTickers() {
-      return this.tickers.filter((ticker) => ticker.name.includes(this.filter));
+      return this.tickers.filter(ticker =>
+        ticker.name.includes(this.filter.toUpperCase())
+      );
     },
 
     paginatedTickers() {
@@ -246,23 +249,44 @@ export default {
         return this.graph.map(() => 50);
       }
       return this.graph.map(
-        (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue)
+        price => 5 + ((price - minValue) * 95) / (maxValue - minValue)
       );
     },
 
     pageStateOptions() {
       return {
         filter: this.filter,
-        page: this.page,
+        page: this.page
       };
     },
+
+    isValid() {
+      const currentTickersName = this.tickers.map(t => t.name.toUpperCase());
+      return currentTickersName.includes(this.ticker.toUpperCase());
+    },
+
+    autoComplete() {
+      const firstTicker =
+        this.ticker &&
+        this.coinsList.filter(
+          coin => coin.Symbol.toUpperCase() === this.ticker.toUpperCase()
+        );
+
+      const elseTickers =
+        this.ticker &&
+        this.coinsList
+          .filter(coin => coin.Symbol.includes(this.ticker.toUpperCase()))
+          .slice(1, 4);
+
+      return firstTicker.concat(elseTickers);
+    }
   },
 
   methods: {
     updateTicker(tickerName, price) {
       this.tickers
-        .filter((t) => t.name === tickerName)
-        .forEach((t) => {
+        .filter(t => t.name === tickerName)
+        .forEach(t => {
           if (t === this.selectedTicker) {
             this.graph.push(price);
           }
@@ -283,10 +307,10 @@ export default {
       }
 
       const exchangeData = await loadTickers(
-        this.tickers.map((ticker) => ticker.name)
+        this.tickers.map(ticker => ticker.name)
       );
 
-      this.tickers.forEach((ticker) => {
+      this.tickers.forEach(ticker => {
         const price = exchangeData[ticker.name.toUpperCase()];
         ticker.price = price ?? "-";
 
@@ -308,11 +332,11 @@ export default {
     },
 
     add() {
-      if (this.validate()) return;
+      if (this.isValid) return;
 
       const currentTicker = {
-        name: this.ticker,
-        price: "-",
+        name: this.ticker.toLocaleUpperCase(),
+        price: "-"
       };
 
       if (this.ticker !== "") {
@@ -321,13 +345,12 @@ export default {
 
       // this.subscribeToUpdate(currentTicker.name);
 
-      this.autocompleteCoins = [];
       this.filter = "";
       this.ticker = "";
     },
 
     handleDelete(tickerToRemove) {
-      this.tickers = this.tickers.filter((t) => t !== tickerToRemove);
+      this.tickers = this.tickers.filter(t => t !== tickerToRemove);
 
       if (this.selectedTicker === tickerToRemove) {
         this.selectedTicker = null;
@@ -336,31 +359,7 @@ export default {
 
     select(ticker) {
       this.selectedTicker = ticker;
-    },
-
-    autoComplete() {
-      this.autocompleteCoins =
-        this.ticker &&
-        this.coinsList.filter(
-          (coin) => coin.Symbol.toUpperCase() === this.ticker.toUpperCase()
-        );
-
-      const elseTickers =
-        this.ticker &&
-        this.coinsList
-          .filter((coin) => coin.Symbol.includes(this.ticker.toUpperCase()))
-          .slice(0, 3);
-      this.autocompleteCoins = this.autocompleteCoins.concat(elseTickers);
-
-      this.validate();
-    },
-
-    validate() {
-      const currentTickersName = this.tickers.map((t) => t.name.toUpperCase());
-      this.isValid = currentTickersName.includes(this.ticker.toUpperCase());
-
-      return this.isValid;
-    },
+    }
   },
 
   created() {
@@ -416,7 +415,7 @@ export default {
         document.title,
         `${window.location.pathname}?filter=${value.filter}&page=${value.page}`
       );
-    },
-  },
+    }
+  }
 };
 </script>
